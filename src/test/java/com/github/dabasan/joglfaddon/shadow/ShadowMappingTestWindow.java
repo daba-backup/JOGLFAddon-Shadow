@@ -35,13 +35,15 @@ class ShadowMappingTestWindow extends JOGLFWindow {
 		var light = new OrthographicLightInfo();
 		light.SetPosition(VGet(-30.0f, 30.0f, -30.0f));
 		light.SetTarget(VGet(0.0f, 0.0f, 0.0f));
-		light.SetNearFar(5.0f, 200.0f);
+		light.SetNearFar(5.0f, 100.0f);
 		lights.add(light);
 
 		shadow_mapping = new ShadowMapping(lights, 2048, 2048);
 		shadow_mapping.AddDepthModel(model_handles[0]);
 		shadow_mapping.AddShadowModel(model_handles[0]);
 		shadow_mapping.AddShadowModel(model_handles[1]);
+		shadow_mapping.SetNormalOffset(0.1f);
+		shadow_mapping.SetBias(0.001f);
 
 		camera = new FreeCamera();
 		camera.SetPosition(VGet(35.0f, 35.0f, 35.0f));
@@ -82,7 +84,11 @@ class ShadowMappingTestWindow extends JOGLFWindow {
 	@Override
 	public void Draw() {
 		// shadow_mapping.VisualizeDepthTexture(0, screen);
-		shadow_mapping.CreateShadowedScene(screen, true);
+		screen.Enable();
+		screen.Clear();
+		// Model3DFunctions.DrawModel(model_handles[0]);
+		screen.Disable();
+		shadow_mapping.CreateShadowedScene(screen, false);
 		screen.Draw(0, 0, this.GetWidth(), this.GetHeight());
 	}
 }

@@ -87,10 +87,6 @@ void main(){
         }
     }
 
-    float x_adj_final_factor=final_factor+dFdx(final_factor);
-    float y_adj_final_factor=final_factor+dFdy(final_factor);
-    float mean_final_factor=(final_factor+x_adj_final_factor+y_adj_final_factor)/3.0;
-
-    fs_out_color=texture(texture_sampler,vs_out_uv)*mean_final_factor;
+    fs_out_color=texture(texture_sampler,vs_out_uv)*final_factor;
     fs_out_color.a=1.0;
 }
