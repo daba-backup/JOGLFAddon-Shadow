@@ -123,5 +123,11 @@
 			<artifactId>joglframework-gl</artifactId>
 			<version>11.7.0</version>
 		</dependency>
+
+		<dependency>
+			<groupId>com.github.dabasan</groupId>
+			<artifactId>joglfaddon-blendscreens</artifactId>
+			<version>1.2.0</version>
+		</dependency>
 	</dependencies>
 </project>
