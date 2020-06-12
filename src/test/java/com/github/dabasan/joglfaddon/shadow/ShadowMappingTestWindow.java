@@ -1,8 +1,6 @@
 package com.github.dabasan.joglfaddon.shadow;
 
 import static com.github.dabasan.basis.vector.VectorFunctions.*;
-import static com.github.dabasan.joglf.gl.wrapper.GLWrapper.*;
-import static com.jogamp.opengl.GL.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,8 +27,9 @@ class ShadowMappingTestWindow extends JOGLFWindow {
 	@Override
 	public void Init() {
 		model_handles = new int[2];
-		model_handles[0] = Model3DFunctions.LoadModel("./Data/Model/OBJ/Teapot/teapot.obj");
+		model_handles[0] = Model3DFunctions.LoadModel("./Data/Model/BD1/Cube/cube.bd1");
 		model_handles[1] = Model3DFunctions.LoadModel("./Data/Model/OBJ/Plane/plane.obj");
+		Model3DFunctions.TranslateModel(model_handles[0], VGet(0.0f, 10.0f, 0.0f));
 
 		List<LightInfo> lights = new ArrayList<>();
 		var light = new OrthographicLightInfo();
@@ -43,13 +42,11 @@ class ShadowMappingTestWindow extends JOGLFWindow {
 		shadow_mapping.AddDepthModel(model_handles[0]);
 		shadow_mapping.AddShadowModel(model_handles[0]);
 		shadow_mapping.AddShadowModel(model_handles[1]);
-		shadow_mapping.SetNormalOffset(0.3f);
+		shadow_mapping.SetNormalOffset(0.05f);
 		shadow_mapping.SetBiasCoefficient(0.0001f);
 
 		camera = new FreeCamera();
 		camera.SetPosition(VGet(35.0f, 35.0f, 35.0f));
-
-		glDisable(GL_CULL_FACE);
 
 		this.GetWindow().setResizable(false);
 	}
