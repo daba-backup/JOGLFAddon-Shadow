@@ -28,6 +28,10 @@ in vec4 shadow_coords[MAX_LIGHT_NUM];
 out vec4 fs_out_color;
 
 float PCFSampling(int index){
+    if(shadow_coords[index].z>1.0){
+        return 1.0;
+    }
+
     float visibility=1.0;
     vec2 texel_size=1.0/depth_texture_size;
 
