@@ -42,7 +42,7 @@ class ShadowMappingTestWindow extends JOGLFWindow {
 		shadow_mapping.AddDepthModel(model_handles[0]);
 		shadow_mapping.AddShadowModel(model_handles[0]);
 		shadow_mapping.AddShadowModel(model_handles[1]);
-		shadow_mapping.SetNormalOffset(0.05f);
+		shadow_mapping.SetNormalOffset(0.01f);
 		shadow_mapping.SetBiasCoefficient(0.0001f);
 
 		camera = new FreeCamera();
@@ -96,7 +96,12 @@ class ShadowMappingTestWindow extends JOGLFWindow {
 		Model3DFunctions.DrawModel(model_handles[1]);
 		screen_src.Disable();
 
+		// shadow_mapping.VisualizeShadowFactors(screen_dst);
 		shadow_mapping.ApplyShadow(screen_src, screen_dst);
 		screen_dst.Draw(0, 0, this.GetWidth(), this.GetHeight());
+
+		if (this.GetKeyboardPressingCount(KeyboardEnum.KEY_ENTER) == 1) {
+			screen_dst.TakeScreenshot("screenshot.png");
+		}
 	}
 }
