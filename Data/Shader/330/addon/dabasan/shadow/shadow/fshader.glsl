@@ -94,6 +94,6 @@ void main(){
         }
     }
 
-    fs_out_color=texture(texture_sampler,vs_out_uv)*final_factor;
-    fs_out_color.a=1.0;
+    vec4 color_factor=vec4(vec3(final_factor),1.0);
+    fs_out_color=texture(texture_sampler,vs_out_uv)*color_factor;
 }

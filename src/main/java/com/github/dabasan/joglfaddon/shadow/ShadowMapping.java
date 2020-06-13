@@ -50,13 +50,9 @@ public class ShadowMapping {
 	private IntBuffer shadow_fbo_ids;
 	private IntBuffer shadow_renderbuffer_ids;
 	private IntBuffer shadow_texture_ids;
-	private IntBuffer blur_fbo_ids;
-	private IntBuffer blur_texture_ids;
 
 	private ShaderProgram depth_program;
 	private ShaderProgram shadow_program;
-	private ShaderProgram blur_program;
-	private ShaderProgram mult_program;
 	private ShaderProgram visualize_program;
 	private FullscreenQuadTransferrerWithUV transferrer;
 
@@ -80,8 +76,6 @@ public class ShadowMapping {
 		this.SetupShadowTextures();
 		this.SetupShadowRenderbuffers();
 		this.SetupShadowFramebuffers();
-		this.SetupBlurTextures();
-		this.SetupBlurFramebuffers();
 		this.SetupPrograms();
 		this.SetDefaultValues();
 
@@ -134,8 +128,8 @@ public class ShadowMapping {
 		glGenTextures(shadow_texture_ids.capacity(), shadow_texture_ids);
 
 		glBindTexture(GL_TEXTURE_2D, shadow_texture_ids.get(0));
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, shadow_texture_width, shadow_texture_height, 0,
-				GL_RED, GL_FLOAT, null);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, shadow_texture_width, shadow_texture_height, 0,
+				GL_RGBA, GL_UNSIGNED_BYTE, null);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -166,36 +160,6 @@ public class ShadowMapping {
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
-	private void SetupBlurTextures() {
-		blur_texture_ids = Buffers.newDirectIntBuffer(2);
-		glGenTextures(blur_texture_ids.capacity(), blur_texture_ids);
-
-		for (int i = 0; i < 2; i++) {
-			glBindTexture(GL_TEXTURE_2D, blur_texture_ids.get(i));
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, shadow_texture_width, shadow_texture_height, 0,
-					GL_RED, GL_FLOAT, null);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
-	}
-	private void SetupBlurFramebuffers() {
-		blur_fbo_ids = Buffers.newDirectIntBuffer(2);
-		glGenFramebuffers(blur_fbo_ids.capacity(), blur_fbo_ids);
-
-		for (int i = 0; i < 2; i++) {
-			glBindFramebuffer(GL_FRAMEBUFFER, blur_fbo_ids.get(i));
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
-					blur_texture_ids.get(i), 0);
-			int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-			if (status != GL_FRAMEBUFFER_COMPLETE) {
-				logger.error("Incomplete framebuffer for blur processing. status={}", status);
-			}
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		}
-	}
 	private void SetupPrograms() {
 		depth_program = new ShaderProgram("dabasan/shadow/depth",
 				"./Data/Shader/330/addon/dabasan/shadow/depth/vshader.glsl",
@@ -203,12 +167,6 @@ public class ShadowMapping {
 		shadow_program = new ShaderProgram("dabasan/shadow/shadow",
 				"./Data/Shader/330/addon/dabasan/shadow/shadow/vshader.glsl",
 				"./Data/Shader/330/addon/dabasan/shadow/shadow/fshader.glsl");
-		mult_program = new ShaderProgram("dabasan/shadow/mult",
-				"./Data/Shader/330/addon/dabasan/shadow/mult/vshader.glsl",
-				"./Data/Shader/330/addon/dabasan/shadow/mult/fshader.glsl");
-		blur_program = new ShaderProgram("dabasan/shadow/blur",
-				"./Data/Shader/330/addon/dabasan/shadow/blur/vshader.glsl",
-				"./Data/Shader/330/addon/dabasan/shadow/blur/fshader.glsl");
 		visualize_program = new ShaderProgram("dabasan/shadow/visualize",
 				"./Data/Shader/330/addon/dabasan/shadow/visualize/vshader.glsl",
 				"./Data/Shader/330/addon/dabasan/shadow/visualize/fshader.glsl");
@@ -216,7 +174,7 @@ public class ShadowMapping {
 		CameraFront.AddProgram(shadow_program);
 	}
 	private void SetDefaultValues() {
-		this.SetNormalOffset(0.1f);
+		this.SetNormalOffset(0.01f);
 		this.SetBiasCoefficient(0.005f);
 		this.SetMaxBias(0.01f);
 		this.SetInShadowVisibility(0.5f);
@@ -226,10 +184,6 @@ public class ShadowMapping {
 		shadow_program.SetUniform("light_num", lights.size());
 		shadow_program.SetUniform("depth_texture_size", depth_texture_width, depth_texture_height);
 		shadow_program.Disable();
-
-		blur_program.Enable();
-		blur_program.SetUniform("texture_size", shadow_texture_width, shadow_texture_height);
-		blur_program.Disable();
 	}
 
 	public void Dispose() {
@@ -238,8 +192,6 @@ public class ShadowMapping {
 		glDeleteFramebuffers(shadow_fbo_ids.capacity(), shadow_fbo_ids);
 		glDeleteRenderbuffers(shadow_renderbuffer_ids.capacity(), shadow_renderbuffer_ids);
 		glDeleteTextures(shadow_texture_ids.capacity(), shadow_texture_ids);
-		glDeleteFramebuffers(blur_fbo_ids.capacity(), blur_fbo_ids);
-		glDeleteTextures(blur_texture_ids.capacity(), blur_texture_ids);
 
 		CameraFront.RemoveProgram(shadow_program);
 	}
@@ -249,20 +201,9 @@ public class ShadowMapping {
 		this.shadow_texture_height = shadow_texture_height;
 
 		glBindTexture(GL_TEXTURE_2D, shadow_texture_ids.get(0));
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, shadow_texture_width, shadow_texture_height, 0,
-				GL_RED, GL_FLOAT, null);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, shadow_texture_width, shadow_texture_height, 0,
+				GL_RGBA, GL_UNSIGNED_BYTE, null);
 		glBindTexture(GL_TEXTURE_2D, 0);
-
-		for (int i = 0; i < 2; i++) {
-			glBindTexture(GL_TEXTURE_2D, blur_texture_ids.get(i));
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, shadow_texture_width, shadow_texture_height, 0,
-					GL_RED, GL_FLOAT, null);
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
-
-		blur_program.Enable();
-		blur_program.SetUniform("texture_size", shadow_texture_width, shadow_texture_height);
-		blur_program.Disable();
 	}
 
 	public void SetNormalOffset(float normal_offset) {
@@ -302,6 +243,8 @@ public class ShadowMapping {
 	}
 	public void AddShadowModel(int model_handle) {
 		shadow_model_handles.add(model_handle);
+		Model3DFunctions.RemoveAllPrograms(model_handle);
+		Model3DFunctions.AddProgram(model_handle, shadow_program);
 	}
 	public void RemoveShadowModel(int model_handle) {
 		shadow_model_handles.remove(model_handle);
@@ -316,7 +259,6 @@ public class ShadowMapping {
 		this.TransferLightProperties();
 		this.GenerateDepthTextures();
 		this.GenerateShadowFactors();
-		this.BlurShadowFactors();
 	}
 	private void TransferCameraPropertiesToPrograms() {
 		CameraFront.Update(shadow_program);
@@ -378,7 +320,6 @@ public class ShadowMapping {
 	}
 	private void GenerateShadowFactors() {
 		shadow_program.Enable();
-		shadow_program.SetTexture("texture_sampler", 0, -1);
 		for (int i = 0; i < lights.size(); i++) {
 			String uname = "depth_textures" + "[" + i + "]";
 			glActiveTexture(GL_TEXTURE0 + (i + 1));
@@ -389,49 +330,10 @@ public class ShadowMapping {
 		glViewport(0, 0, shadow_texture_width, shadow_texture_height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		for (int shadow_model_handle : shadow_model_handles) {
-			Model3DFunctions.TransferModel(shadow_model_handle);
+			Model3DFunctions.DrawModel(shadow_model_handle, "texture_sampler", 0);
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		shadow_program.Disable();
-	}
-	private void BlurShadowFactors() {
-		blur_program.Enable();
-		// Horizontal
-		blur_program.SetUniform("direction", BlurDirection.HORIZONTAL.ordinal());
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, shadow_texture_ids.get(0));
-		blur_program.SetUniform("texture_sampler", 0);
-		glBindFramebuffer(GL_FRAMEBUFFER, blur_fbo_ids.get(0));
-		glViewport(0, 0, shadow_texture_width, shadow_texture_height);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		transferrer.Transfer();
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		// Vertical
-		blur_program.SetUniform("direction", BlurDirection.VERTICAL.ordinal());
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, blur_texture_ids.get(0));
-		blur_program.SetUniform("texture_sampler", 0);
-		glBindFramebuffer(GL_FRAMEBUFFER, blur_fbo_ids.get(1));
-		glViewport(0, 0, shadow_texture_width, shadow_texture_height);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		transferrer.Transfer();
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		blur_program.Disable();
-	}
-
-	public void ApplyShadow(ScreenBase src, ScreenBase dst) {
-		mult_program.Enable();
-		glActiveTexture(GL_TEXTURE0);
-		src.BindScreenTexture();
-		mult_program.SetUniform("texture_sampler", 0);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, blur_texture_ids.get(1));
-		mult_program.SetUniform("shadow_factors", 1);
-		dst.Enable();
-		dst.Clear();
-		transferrer.Transfer();
-		dst.Disable();
-		mult_program.Disable();
 	}
 
 	public int VisualizeDepthTexture(int index, ScreenBase screen) {
@@ -451,16 +353,5 @@ public class ShadowMapping {
 		visualize_program.Disable();
 
 		return 0;
-	}
-	public void VisualizeShadowFactors(ScreenBase screen) {
-		visualize_program.Enable();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, blur_texture_ids.get(1));
-		visualize_program.SetUniform("texture_sampler", 0);
-		screen.Enable();
-		screen.Clear();
-		transferrer.Transfer();
-		screen.Disable();
-		visualize_program.Disable();
 	}
 }

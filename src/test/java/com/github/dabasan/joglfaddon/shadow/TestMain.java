@@ -5,7 +5,6 @@ public class TestMain {
 		new TestMain();
 	}
 	public TestMain() {
-		var window = new ShadowMappingTestWindow();
-		window.SetExitProcessWhenDestroyed();
+
 	}
 }
